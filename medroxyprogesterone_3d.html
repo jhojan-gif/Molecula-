@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Medroxyprogesterone Acetate — 3D</title>
+  <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      color: #000;
+      text-align: center;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    #viewer {
+      width: 450px;
+      height: 450px;
+      border-radius: 15px;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+      background: #f9f9f9;
+      margin-bottom: 15px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    button {
+      background: #f0f0f0;
+      color: #000;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h2>Medroxyprogesterone Acetate (CID 6279)</h2>
+  <div id="viewer"></div>
+
+  <div class="controls">
+    <button id="toggleSpin">Detener giro</button>
+    <button id="styleStick">Palitos</button>
+    <button id="styleBallStick">Bola y palito</button>
+    <button id="styleSurface">Superficie</button>
+    <button id="toggleLabels">Ocultar nombres</button>
+  </div>
+
+  <script>
+    (function(){
+      const CID = 6279;
+      const sdfUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${CID}/SDF?record_type=3d`;
+      const viewer = $3Dmol.createViewer("viewer", { backgroundColor: "white" });
+      let model = null;
+      let spinning = true;
+      let labels = [];
+      let labelsVisible = true;
+
+      function addLabels(model) {
+        removeLabels();
+        const atoms = model.selectedAtoms({});
+        atoms.forEach(atom => {
+          if (atom.elem === "H" || atom.elem === "C") {
+            const pos = {x: atom.x, y: atom.y, z: atom.z};
+            const label = viewer.addLabel(atom.elem, {
+              position: pos,
+              backgroundColor: "rgba(255,255,255,0.8)",
+              fontColor: "black",
+              fontSize: 12,
+              inFront: true
+            });
+            labels.push(label);
+          }
+        });
+      }
+
+      function removeLabels() {
+        labels.forEach(label => viewer.removeLabel(label));
+        labels = [];
+      }
+
+      fetch(sdfUrl)
+        .then(r => r.text())
+        .then(data => {
+          model = viewer.addModel(data, "sdf");
+          model.setStyle({}, {stick:{radius:0.1}, sphere:{scale:0.3}});
+          viewer.zoomTo();
+          viewer.render();
+          viewer.spin(true);
+          addLabels(model);
+        });
+
+      document.getElementById("toggleSpin").addEventListener("click", () => {
+        spinning = !spinning;
+        viewer.spin(spinning);
+        document.getElementById("toggleSpin").textContent = spinning ? "Detener giro" : "Activar giro";
+      });
+
+      document.getElementById("styleStick").addEventListener("click", () => {
+        model.setStyle({}, {stick:{radius:0.1}});
+        viewer.render();
+        if (labelsVisible) addLabels(model);
+      });
+
+      document.getElementById("styleBallStick").addEventListener("click", () => {
+        model.setStyle({}, {stick:{radius:0.12}, sphere:{scale:0.3}});
+        viewer.render();
+        if (labelsVisible) addLabels(model);
+      });
+
+      document.getElementById("styleSurface").addEventListener("click", () => {
+        viewer.removeAllSurfaces();
+        model.setStyle({}, {});
+        viewer.addSurface($3Dmol.SurfaceType.MS, {opacity:0.85});
+        viewer.render();
+        if (labelsVisible) addLabels(model);
+      });
+
+      document.getElementById("toggleLabels").addEventListener("click", () => {
+        labelsVisible = !labelsVisible;
+        if (labelsVisible) {
+          addLabels(model);
+          document.getElementById("toggleLabels").textContent = "Ocultar nombres";
+        } else {
+          removeLabels();
+          document.getElementById("toggleLabels").textContent = "Mostrar nombres";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
